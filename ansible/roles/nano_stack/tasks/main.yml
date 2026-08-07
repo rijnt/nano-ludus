@@ -298,6 +298,8 @@
     url: "http://localhost:{{ nanosiem_http_port }}/api/health"
     method: GET
     status_code: 200
+    follow_redirects: all
+    validate_certs: no
   register: health_check
   retries: 60
   delay: 5
