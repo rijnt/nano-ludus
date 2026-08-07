@@ -77,11 +77,11 @@ in `requirements.yml`.
 
 | Role | Purpose |
 |---|---|
-| `nano_stack` | Full nano SIEM stack on the SIEM box (Docker Compose, GHCR open‑core images) |
-| `nano_sysmon` | Sysmon (SwiftOnSecurity config) on Windows + the temp‑redirect workaround |
-| `nano_vector_aggregator` | Vector aggregator on the proxy box (agent intake → SIEM) |
-| `nano_vector_agent` | Vector agent on Windows (Event Log + Sysmon collection) |
-| `nano_conduit_proxy` | Conduit MITM proxy + CA trust for HTTP(S) traffic capture |
+| `NanoSIEM.nano_stack` | Full nano SIEM stack on the SIEM box (Docker Compose, GHCR open‑core images) |
+| `NanoSIEM.nano_sysmon` | Sysmon (SwiftOnSecurity config) on Windows + the temp‑redirect workaround |
+| `NanoSIEM.nano_vector_aggregator` | Vector aggregator on the proxy box (agent intake → SIEM) |
+| `NanoSIEM.nano_vector_agent` | Vector agent on Windows (Event Log + Sysmon collection) |
+| `NanoSIEM.nano_conduit_proxy` | Conduit MITM proxy + CA trust for HTTP(S) traffic capture |
 
 <details>
 <summary><b>Customize</b> — event channels, VM sizing, single‑box iteration</summary>

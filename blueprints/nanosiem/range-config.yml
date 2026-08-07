@@ -37,7 +37,8 @@ ludus:
     linux: true
     roles:
       - geerlingguy.docker
-      - nano_stack
+      - NanoSIEM.nano_stack
+      - NocteDefensor.ludus_tailscale
     role_vars:
       docker_users:
         - localuser
@@ -48,6 +49,12 @@ ludus:
       # --- Lab defaults (change for production) ---
       nanosiem_dev_mode: "true"
       nanosiem_vector_auth_token: "nanosiem-lab-token"
+      # --- Tailscale ---
+      tailscale_state: "present"
+      tailscale_authkey: "tskey-auth-YOUR_KEY"
+      tailscale_api_key: "tskey-api-YOUR_KEY"
+      tailscale_ssh: false
+      tailscale_dns: true
 
   # =========================================================================
   # Proxy / Aggregator - Vector aggregator + general proxy services
@@ -62,8 +69,8 @@ ludus:
     linux: true
     roles:
       - geerlingguy.docker
-      - nano_vector_aggregator
-      - nano_conduit_proxy
+      - NanoSIEM.nano_vector_aggregator
+      - NanoSIEM.nano_conduit_proxy
     role_vars:
       docker_users:
         - localuser
@@ -89,8 +96,8 @@ ludus:
       fqdn: lab.local
       role: primary-dc
     roles:
-      - nano_sysmon
-      - nano_vector_agent
+      - NanoSIEM.nano_sysmon
+      - NanoSIEM.nano_vector_agent
     role_vars:
       # Points to the aggregator/proxy box (last octet 11)
       vector_aggregator_ip: "10.{{ range_second_octet }}.10.11"
@@ -124,8 +131,8 @@ ludus:
       fqdn: lab.local
       role: member
     roles:
-      - nano_sysmon
-      - nano_vector_agent
+      - NanoSIEM.nano_sysmon
+      - NanoSIEM.nano_vector_agent
     role_vars:
       vector_aggregator_ip: "10.{{ range_second_octet }}.10.11"
       vector_aggregator_port: 9000
@@ -148,8 +155,8 @@ ludus:
       fqdn: lab.local
       role: member
     roles:
-      - nano_sysmon
-      - nano_vector_agent
+      - NanoSIEM.nano_sysmon
+      - NanoSIEM.nano_vector_agent
     role_vars:
       vector_aggregator_ip: "10.{{ range_second_octet }}.10.11"
       vector_aggregator_port: 9000

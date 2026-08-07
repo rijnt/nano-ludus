@@ -66,6 +66,10 @@ nanosiem_hot_retention_days: 90
 nanosiem_warm_retention_days: 30
 nanosiem_tier: unrestricted
 
+# ---- Webhooks / Egress ----
+nanosiem_webhook_allow_private: "true"
+nanosiem_webhook_egress_allowlist: "100.64.0.0/10,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+
 # ---- ClickHouse memory (NAN-2252) ----
 # The upstream open-core compose interpolates ${CLICKHOUSE_MEM_LIMIT:-2G} for
 # the ClickHouse container. Mirror install.sh's sizing here: VM RAM rounded to

@@ -5,6 +5,7 @@
       - docker-compose-plugin
       - curl
       - ca-certificates
+      - jq
     state: present
     update_cache: true
 
@@ -27,9 +28,11 @@
       curl -fsSL "https://github.com/nano-rs/nano/archive/refs/heads/{{ nano_ref }}.tar.gz"
       | tar -xz -C "{{ nanosiem_deploy_dir }}" --strip-components=1
       "nano-{{ nano_ref }}/docker-compose.opensource.yml"
+      "nano-{{ nano_ref }}/docker-compose.tls.yml"
       "nano-{{ nano_ref }}/images.lock"
       "nano-{{ nano_ref }}/config/vector"
       "nano-{{ nano_ref }}/config/nginx/nginx.opensource.conf"
+      "nano-{{ nano_ref }}/config/nginx/nginx.opensource-tls.conf"
       "nano-{{ nano_ref }}/clickhouse/config.d"
       "nano-{{ nano_ref }}/clickhouse/users.d"
     executable: /bin/bash
@@ -102,6 +105,105 @@
     nanosiem_jwt_secret: "{{ (nanosiem_jwt_secret_file.content | b64decode | trim) if nanosiem_jwt_secret | length == 0 else nanosiem_jwt_secret }}"
     nanosiem_encryption_key: "{{ (nanosiem_encryption_key_file.content | b64decode | trim) if nanosiem_encryption_key | length == 0 else nanosiem_encryption_key }}"
 
+# ---- Tailscale TLS Certificate & Renewal ----
+- name: Check Tailscale status
+  ansible.builtin.command: tailscale status --json
+  register: tailscale_status_cmd
+  changed_when: false
+  failed_when: false
+
+- name: Extract Tailscale FQDN
+  ansible.builtin.set_fact:
+    tailscale_fqdn: "{{ (tailscale_status_cmd.stdout | from_json).Self.DNSName | regex_replace('\\.$', '') }}"
+  when:
+    - tailscale_status_cmd.rc == 0
+    - tailscale_status_cmd.stdout | length > 0
+    - (tailscale_status_cmd.stdout | from_json).Self.DNSName is defined
+    - (tailscale_status_cmd.stdout | from_json).Self.DNSName | length > 0
+
+- name: Create TLS certs directory
+  ansible.builtin.file:
+    path: "{{ nanosiem_deploy_dir }}/config/nginx/ssl"
+    state: directory
+    mode: "0755"
+  when: tailscale_fqdn is defined and tailscale_fqdn | length > 0
+
+- name: Generate Tailscale TLS certificate
+  ansible.builtin.command:
+    cmd: "tailscale cert --cert-file {{ nanosiem_deploy_dir }}/config/nginx/ssl/fullchain.pem --key-file {{ nanosiem_deploy_dir }}/config/nginx/ssl/privkey.pem {{ tailscale_fqdn }}"
+  register: tailscale_cert_cmd
+  changed_when: true
+  failed_when: false
+  when: tailscale_fqdn is defined and tailscale_fqdn | length > 0
+
+- name: Configure TLS base URL and environment
+  ansible.builtin.set_fact:
+    nanosiem_base_url: "https://{{ tailscale_fqdn }}"
+    nanosiem_dev_mode: false
+  when:
+    - tailscale_fqdn is defined
+    - tailscale_fqdn | length > 0
+    - tailscale_cert_cmd is defined
+    - tailscale_cert_cmd.rc == 0
+
+- name: Template docker-compose.override.yml file
+  ansible.builtin.template:
+    src: docker-compose.override.yml.j2
+    dest: "{{ nanosiem_deploy_dir }}/docker-compose.override.yml"
+    mode: "0644"
+  notify: restart nanosiem
+
+- name: Create systemd service for Tailscale cert renewal
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/tailscale-cert-renew.service
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Renew Tailscale TLS Certificate for nano SIEM
+      After=network-online.target tailscaled.service
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/bin/bash -c '\
+        FQDN=$(tailscale status --json 2>/dev/null | jq -r .Self.DNSName 2>/dev/null | sed "s/\\.$//") && \
+        if [ -n "$FQDN" ] && [ "$FQDN" != "null" ]; then \
+          tailscale cert --cert-file {{ nanosiem_deploy_dir }}/config/nginx/ssl/fullchain.pem --key-file {{ nanosiem_deploy_dir }}/config/nginx/ssl/privkey.pem "$FQDN" && \
+          (cd {{ nanosiem_deploy_dir }} && docker compose exec -T nginx nginx -s reload 2>/dev/null || docker compose restart nginx 2>/dev/null); \
+        fi \
+      '
+  when:
+    - tailscale_fqdn is defined
+    - tailscale_fqdn | length > 0
+
+- name: Create systemd timer for Tailscale cert renewal
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/tailscale-cert-renew.timer
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Daily renewal timer for Tailscale TLS Certificate
+
+      [Timer]
+      OnCalendar=daily
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+  when:
+    - tailscale_fqdn is defined
+    - tailscale_fqdn | length > 0
+
+- name: Enable and start Tailscale cert renewal timer
+  ansible.builtin.systemd:
+    name: tailscale-cert-renew.timer
+    state: started
+    enabled: true
+    daemon_reload: true
+  when:
+    - tailscale_fqdn is defined
+    - tailscale_fqdn | length > 0
+
 - name: Template .env file
   ansible.builtin.template:
     src: env.j2
@@ -119,6 +221,7 @@
     comment: "nano SIEM {{ item.name }}"
   loop:
     - { port: "{{ nanosiem_http_port }}", name: "Web/API (nginx)" }
+    - { port: "443", name: "Web/API HTTPS (nginx)" }
     - { port: "{{ nanosiem_vector_http_port }}", name: "Vector HTTP ingest" }
     - { port: "6000", name: "Vector native protocol" }
     - { port: "{{ nanosiem_vector_hec_port }}", name: "Splunk HEC" }
