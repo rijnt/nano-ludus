@@ -37,8 +37,8 @@ ludus:
     linux: true
     roles:
       - geerlingguy.docker
-      - NanoSIEM.nano_stack
       - NocteDefensor.ludus_tailscale
+      - NanoSIEM.nano_stack
     role_vars:
       docker_users:
         - localuser

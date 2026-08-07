@@ -126,14 +126,16 @@
     path: "{{ nanosiem_deploy_dir }}/config/nginx/ssl"
     state: directory
     mode: "0755"
-  when: tailscale_fqdn is defined and tailscale_fqdn | length > 0
 
 - name: Generate Tailscale TLS certificate
   ansible.builtin.command:
     cmd: "tailscale cert --cert-file {{ nanosiem_deploy_dir }}/config/nginx/ssl/fullchain.pem --key-file {{ nanosiem_deploy_dir }}/config/nginx/ssl/privkey.pem {{ tailscale_fqdn }}"
   register: tailscale_cert_cmd
-  changed_when: true
+  changed_when: tailscale_cert_cmd.rc == 0
   failed_when: false
+  retries: 3
+  delay: 10
+  until: tailscale_cert_cmd.rc == 0
   when: tailscale_fqdn is defined and tailscale_fqdn | length > 0
 
 - name: Configure TLS base URL and environment
