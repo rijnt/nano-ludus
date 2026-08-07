@@ -1,0 +1,3 @@
+[submodule "ansible/roles/ludus_tailscale"]
+	path = ansible/roles/ludus_tailscale
+	url = https://github.com/NocteDefensor/ludus_tailscale
