@@ -16,17 +16,12 @@
 # Before deploying:
 #   - Build required templates: debian-12, win2022-server, win11-22h2-enterprise
 #
-# Role names below carry the `NanoSIEM.` prefix (NAN-2358). The five nano_*
-# roles are vendored under `ansible/roles/`, and every one of them declares
-# `author: NanoSIEM` in its meta/main.yml — so ansible-galaxy installs them as
-# `NanoSIEM.<role_name>`, not under the bare directory name. Referencing them
-# bare here makes `ludus range deploy` fail to resolve the roles, which is what
-# an external tester hit: the range would not deploy until every entry was
-# hand-prefixed. `geerlingguy.docker` was already namespaced, which is why it
-# was the only one that resolved.
-#
-# If you rename a role or drop its `author`, update BOTH sides or this breaks
-# again silently.
+# Role names below carry prefixes matching their author in meta/main.yml (NAN-2358):
+#   - `NanoSIEM.*` for the five vendored nano_* roles
+#   - `NocteDefensor.ludus_tailscale` for the Tailscale submodule role
+#   - `P4T12ICK.ludus_ar_windows` for the Splunk Universal Forwarder submodule role
+# Ansible-galaxy installs them under `<author>.<role_name>`. Referencing them bare
+# causes `ludus range deploy` to fail role resolution.
 #
 # The SIEM box pulls the public open-core images from ghcr.io/nano-rs (no auth).
 
@@ -105,6 +100,7 @@ ludus:
     roles:
       - NanoSIEM.nano_sysmon
       - NanoSIEM.nano_vector_agent
+      - P4T12ICK.ludus_ar_windows
     role_vars:
       # Points to the aggregator/proxy box (last octet 11)
       vector_aggregator_ip: "10.{{ range_second_octet }}.10.11"
@@ -121,6 +117,8 @@ ludus:
       # Conduit MITM proxy
       conduit_proxy_enabled: true
       conduit_proxy_ip: "10.{{ range_second_octet }}.10.11"
+      # Splunk Universal Forwarder (P4T12ICK.ludus_ar_windows)
+      ludus_ar_windows_splunk_ip: "10.{{ range_second_octet }}.10.10"
 
   # =========================================================================
   # Member Server - General purpose Windows Server
@@ -140,11 +138,14 @@ ludus:
     roles:
       - NanoSIEM.nano_sysmon
       - NanoSIEM.nano_vector_agent
+      - P4T12ICK.ludus_ar_windows
     role_vars:
       vector_aggregator_ip: "10.{{ range_second_octet }}.10.11"
       vector_aggregator_port: 9000
       conduit_proxy_enabled: true
       conduit_proxy_ip: "10.{{ range_second_octet }}.10.11"
+      # Splunk Universal Forwarder (P4T12ICK.ludus_ar_windows)
+      ludus_ar_windows_splunk_ip: "10.{{ range_second_octet }}.10.10"
 
   # =========================================================================
   # Windows Workstation - End-user machine
@@ -164,8 +165,11 @@ ludus:
     roles:
       - NanoSIEM.nano_sysmon
       - NanoSIEM.nano_vector_agent
+      - P4T12ICK.ludus_ar_windows
     role_vars:
       vector_aggregator_ip: "10.{{ range_second_octet }}.10.11"
       vector_aggregator_port: 9000
       conduit_proxy_enabled: true
       conduit_proxy_ip: "10.{{ range_second_octet }}.10.11"
+      # Splunk Universal Forwarder (P4T12ICK.ludus_ar_windows)
+      ludus_ar_windows_splunk_ip: "10.{{ range_second_octet }}.10.10"

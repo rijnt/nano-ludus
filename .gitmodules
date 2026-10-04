@@ -1,3 +1,6 @@
 [submodule "ansible/roles/ludus_tailscale"]
 	path = ansible/roles/ludus_tailscale
 	url = https://github.com/NocteDefensor/ludus_tailscale
+[submodule "ansible/roles/ludus_ar_windows"]
+	path = ansible/roles/ludus_ar_windows
+	url = https://github.com/P4T12ICK/ludus_ar_windows

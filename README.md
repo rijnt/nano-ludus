@@ -87,6 +87,8 @@ resolve at deploy time (NAN‑2358). Drop or change an `author` and you must upd
 | `NanoSIEM.nano_vector_aggregator` | Vector aggregator on the proxy box (agent intake → SIEM) |
 | `NanoSIEM.nano_vector_agent` | Vector agent on Windows (Event Log + Sysmon collection) |
 | `NanoSIEM.nano_conduit_proxy` | Conduit MITM proxy + CA trust for HTTP(S) traffic capture |
+| `NocteDefensor.ludus_tailscale` | Provisions Tailscale VPN on the SIEM box |
+| `P4T12ICK.ludus_ar_windows` | Splunk Universal Forwarder (UF) on Windows + Sysmon & Windows Event log collection |
 
 <details>
 <summary><b>Customize</b> — event channels, VM sizing, single‑box iteration</summary>
